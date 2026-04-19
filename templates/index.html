@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AuthentiCheck</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+  .card { background: white; border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.10); padding: 48px 40px; max-width: 520px; width: 100%; }
+  h1 { color: #1a1a2e; font-size: 1.8rem; margin-bottom: 6px; }
+  .subtitle { color: #666; font-size: 0.95rem; margin-bottom: 32px; }
+  label { display: block; font-weight: 600; color: #333; margin-bottom: 6px; font-size: 0.9rem; }
+  input[type="file"] { display: block; width: 100%; padding: 10px; border: 2px dashed #bbb; border-radius: 8px; cursor: pointer; margin-bottom: 20px; background: #fafafa; }
+  select { width: 100%; padding: 9px 12px; border: 1px solid #ccc; border-radius: 6px; margin-bottom: 20px; font-size: 0.95rem; }
+  .checkbox-row { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; font-size: 0.9rem; color: #555; }
+  button[type="submit"] { width: 100%; padding: 14px; background: #1a1a2e; color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+  button[type="submit"]:hover { background: #2d2d5e; }
+  button[type="submit"]:disabled { background: #888; cursor: not-allowed; }
+  .flash { background: #fff3cd; color: #856404; border: 1px solid #ffc107; border-radius: 6px; padding: 12px; margin-bottom: 20px; font-size: 0.9rem; }
+  .error-box { background: #fde8e8; color: #c0392b; border: 1px solid #e74c3c; border-radius: 6px; padding: 12px; margin-top: 20px; font-size: 0.9rem; display: none; }
+
+  /* Progress section */
+  #progress-section { display: none; margin-top: 28px; }
+  .progress-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .progress-step { font-size: 0.9rem; color: #444; }
+  .progress-pct { font-size: 0.9rem; font-weight: 600; color: #1a1a2e; }
+  .progress-track { width: 100%; height: 10px; background: #e8e8e8; border-radius: 99px; overflow: hidden; }
+  .progress-bar { height: 100%; width: 0%; background: linear-gradient(90deg, #1a1a2e, #4a4aae); border-radius: 99px; transition: width 0.4s ease; }
+  .progress-steps { margin-top: 18px; display: flex; flex-direction: column; gap: 6px; }
+  .step-item { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; color: #aaa; transition: color 0.3s; }
+  .step-item.active { color: #1a1a2e; font-weight: 600; }
+  .step-item.done { color: #27ae60; }
+  .step-dot { width: 8px; height: 8px; border-radius: 50%; background: #ddd; flex-shrink: 0; transition: background 0.3s; }
+  .step-item.active .step-dot { background: #4a4aae; }
+  .step-item.done .step-dot { background: #27ae60; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>AuthentiCheck</h1>
+  <p class="subtitle">Academic plagiarism risk detection — upload a paper to get started.</p>
+
+  <form id="upload-form" enctype="multipart/form-data">
+    <label for="document">Upload Document (PDF or DOCX)</label>
+    <input type="file" name="document" id="document" accept=".pdf,.docx" required>
+
+    <label for="format">Report Format</label>
+    <select name="format" id="format">
+      <option value="html">HTML (view in browser)</option>
+      <option value="text">Plain Text (download)</option>
+    </select>
+
+    <label for="chunk_strategy">Chunking Strategy</label>
+    <select name="chunk_strategy" id="chunk_strategy">
+      <option value="sentences">Sentences (default, more granular)</option>
+      <option value="paragraphs">Paragraphs (faster)</option>
+    </select>
+
+    <div class="checkbox-row">
+      <input type="checkbox" name="no_semantic" id="no_semantic">
+      <label for="no_semantic" style="margin:0; font-weight:normal;">Skip semantic analysis (faster, less accurate)</label>
+    </div>
+
+    <button type="submit" id="submit-btn">Analyze Document</button>
+  </form>
+
+  <div class="error-box" id="error-box"></div>
+
+  <div id="progress-section">
+    <div class="progress-label">
+      <span class="progress-step" id="step-text">Starting…</span>
+      <span class="progress-pct" id="pct-text">0%</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-bar" id="progress-bar"></div>
+    </div>
+    <div class="progress-steps">
+      <div class="step-item" id="s-parse">   <span class="step-dot"></span> Parsing document</div>
+      <div class="step-item" id="s-pre">     <span class="step-dot"></span> Preprocessing text</div>
+      <div class="step-item" id="s-chunk">   <span class="step-dot"></span> Chunking text</div>
+      <div class="step-item" id="s-retrieve"><span class="step-dot"></span> Retrieving candidate sources</div>
+      <div class="step-item" id="s-sim">     <span class="step-dot"></span> Computing similarity scores</div>
+      <div class="step-item" id="s-cite">    <span class="step-dot"></span> Applying citation awareness</div>
+      <div class="step-item" id="s-report">  <span class="step-dot"></span> Generating report</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const STEP_MAP = [
+  { id: "s-parse",    from: 5  },
+  { id: "s-pre",      from: 15 },
+  { id: "s-chunk",    from: 22 },
+  { id: "s-retrieve", from: 25 },
+  { id: "s-sim",      from: 78 },
+  { id: "s-cite",     from: 88 },
+  { id: "s-report",   from: 95 },
+];
+
+function updateSteps(pct) {
+  STEP_MAP.forEach((s, i) => {
+    const el = document.getElementById(s.id);
+    const next = STEP_MAP[i + 1];
+    if (pct >= 100 || (next && pct >= next.from)) {
+      el.className = "step-item done";
+    } else if (pct >= s.from) {
+      el.className = "step-item active";
+    } else {
+      el.className = "step-item";
+    }
+  });
+}
+
+document.getElementById("upload-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById("submit-btn");
+  const errBox = document.getElementById("error-box");
+  errBox.style.display = "none";
+  btn.disabled = true;
+  btn.textContent = "Uploading…";
+
+  const formData = new FormData(e.target);
+  let jobId;
+
+  try {
+    const res = await fetch("/analyze", { method: "POST", body: formData });
+    const data = await res.json();
+    if (!res.ok || data.error) {
+      throw new Error(data.error || "Upload failed.");
+    }
+    jobId = data.job_id;
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = "Analyze Document";
+    errBox.textContent = err.message;
+    errBox.style.display = "block";
+    return;
+  }
+
+  // Show progress UI
+  document.getElementById("progress-section").style.display = "block";
+  btn.textContent = "Analyzing…";
+
+  const es = new EventSource(`/progress/${jobId}`);
+  es.onmessage = (event) => {
+    const job = JSON.parse(event.data);
+    const pct = job.progress || 0;
+
+    document.getElementById("progress-bar").style.width = pct + "%";
+    document.getElementById("pct-text").textContent = pct + "%";
+    document.getElementById("step-text").textContent = job.step || "";
+    updateSteps(pct);
+
+    if (job.status === "done") {
+      es.close();
+      window.location.href = `/result/${jobId}`;
+    } else if (job.status === "error") {
+      es.close();
+      btn.disabled = false;
+      btn.textContent = "Analyze Document";
+      errBox.textContent = job.step || "An error occurred.";
+      errBox.style.display = "block";
+    }
+  };
+
+  es.onerror = () => {
+    es.close();
+    btn.disabled = false;
+    btn.textContent = "Analyze Document";
+    errBox.textContent = "Lost connection to server.";
+    errBox.style.display = "block";
+  };
+});
+</script>
+</body>
+</html>
