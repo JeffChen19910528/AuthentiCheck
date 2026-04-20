@@ -6,10 +6,13 @@
 <title>AuthentiCheck</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+  body { font-family: 'Segoe UI', 'Noto Sans JP', 'Noto Sans TC', Arial, sans-serif; background: #f0f2f5; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
   .card { background: white; border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.10); padding: 48px 40px; max-width: 520px; width: 100%; }
   h1 { color: #1a1a2e; font-size: 1.8rem; margin-bottom: 6px; }
-  .subtitle { color: #666; font-size: 0.95rem; margin-bottom: 32px; }
+  .subtitle { color: #666; font-size: 0.95rem; margin-bottom: 24px; }
+  .lang-row { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; font-size: 0.9rem; color: #555; }
+  .lang-row label { font-weight: 600; color: #333; margin: 0; white-space: nowrap; }
+  .lang-row select { flex: 1; padding: 7px 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 0.9rem; }
   label { display: block; font-weight: 600; color: #333; margin-bottom: 6px; font-size: 0.9rem; }
   input[type="file"] { display: block; width: 100%; padding: 10px; border: 2px dashed #bbb; border-radius: 8px; cursor: pointer; margin-bottom: 20px; background: #fafafa; }
   select { width: 100%; padding: 9px 12px; border: 1px solid #ccc; border-radius: 6px; margin-bottom: 20px; font-size: 0.95rem; }
@@ -39,55 +42,176 @@
 <body>
 <div class="card">
   <h1>AuthentiCheck</h1>
-  <p class="subtitle">Academic plagiarism risk detection — upload a paper to get started.</p>
+  <p class="subtitle" data-i18n="subtitle">Academic plagiarism risk detection — upload a paper to get started.</p>
+
+  <!-- Language selector -->
+  <div class="lang-row">
+    <label for="lang-select" data-i18n="label_language">Language</label>
+    <select id="lang-select">
+      <option value="en">English</option>
+      <option value="zh-TW">繁體中文</option>
+      <option value="ja">日本語</option>
+    </select>
+  </div>
 
   <form id="upload-form" enctype="multipart/form-data">
-    <label for="document">Upload Document (PDF or DOCX)</label>
+    <input type="hidden" name="lang" id="lang-hidden" value="en">
+
+    <label for="document" data-i18n="label_upload">Upload Document (PDF or DOCX)</label>
     <input type="file" name="document" id="document" accept=".pdf,.docx" required>
 
-    <label for="format">Report Format</label>
+    <label for="format" data-i18n="label_format">Report Format</label>
     <select name="format" id="format">
-      <option value="html">HTML (view in browser)</option>
-      <option value="text">Plain Text (download)</option>
+      <option value="html" data-i18n="opt_html">HTML (view in browser)</option>
+      <option value="text" data-i18n="opt_text">Plain Text (download)</option>
     </select>
 
-    <label for="chunk_strategy">Chunking Strategy</label>
+    <label for="chunk_strategy" data-i18n="label_chunk">Chunking Strategy</label>
     <select name="chunk_strategy" id="chunk_strategy">
-      <option value="sentences">Sentences (default, more granular)</option>
-      <option value="paragraphs">Paragraphs (faster)</option>
+      <option value="sentences" data-i18n="opt_sentences">Sentences (default, more granular)</option>
+      <option value="paragraphs" data-i18n="opt_paragraphs">Paragraphs (faster)</option>
     </select>
 
     <div class="checkbox-row">
       <input type="checkbox" name="no_semantic" id="no_semantic">
-      <label for="no_semantic" style="margin:0; font-weight:normal;">Skip semantic analysis (faster, less accurate)</label>
+      <label for="no_semantic" id="label-no-semantic" style="margin:0; font-weight:normal;" data-i18n="label_no_semantic">Skip semantic analysis (faster, less accurate)</label>
     </div>
 
-    <button type="submit" id="submit-btn">Analyze Document</button>
+    <button type="submit" id="submit-btn" data-i18n="btn_analyze">Analyze Document</button>
   </form>
 
   <div class="error-box" id="error-box"></div>
 
   <div id="progress-section">
     <div class="progress-label">
-      <span class="progress-step" id="step-text">Starting…</span>
+      <span class="progress-step" id="step-text" data-i18n="step_starting">Starting…</span>
       <span class="progress-pct" id="pct-text">0%</span>
     </div>
     <div class="progress-track">
       <div class="progress-bar" id="progress-bar"></div>
     </div>
     <div class="progress-steps">
-      <div class="step-item" id="s-parse">   <span class="step-dot"></span> Parsing document</div>
-      <div class="step-item" id="s-pre">     <span class="step-dot"></span> Preprocessing text</div>
-      <div class="step-item" id="s-chunk">   <span class="step-dot"></span> Chunking text</div>
-      <div class="step-item" id="s-retrieve"><span class="step-dot"></span> Retrieving candidate sources</div>
-      <div class="step-item" id="s-sim">     <span class="step-dot"></span> Computing similarity scores</div>
-      <div class="step-item" id="s-cite">    <span class="step-dot"></span> Applying citation awareness</div>
-      <div class="step-item" id="s-report">  <span class="step-dot"></span> Generating report</div>
+      <div class="step-item" id="s-parse">   <span class="step-dot"></span> <span data-i18n="step_parse">Parsing document</span></div>
+      <div class="step-item" id="s-pre">     <span class="step-dot"></span> <span data-i18n="step_pre">Preprocessing text</span></div>
+      <div class="step-item" id="s-chunk">   <span class="step-dot"></span> <span data-i18n="step_chunk">Chunking text</span></div>
+      <div class="step-item" id="s-retrieve"><span class="step-dot"></span> <span data-i18n="step_retrieve">Retrieving candidate sources</span></div>
+      <div class="step-item" id="s-sim">     <span class="step-dot"></span> <span data-i18n="step_sim">Computing similarity scores</span></div>
+      <div class="step-item" id="s-cite">    <span class="step-dot"></span> <span data-i18n="step_cite">Applying citation awareness</span></div>
+      <div class="step-item" id="s-report">  <span class="step-dot"></span> <span data-i18n="step_report">Generating report</span></div>
     </div>
   </div>
 </div>
 
 <script>
+const T = {
+  "en": {
+    "subtitle": "Academic plagiarism risk detection \u2014 upload a paper to get started.",
+    "label_upload": "Upload Document (PDF or DOCX)",
+    "label_format": "Report Format",
+    "opt_html": "HTML (view in browser)",
+    "opt_text": "Plain Text (download)",
+    "label_chunk": "Chunking Strategy",
+    "opt_sentences": "Sentences (default, more granular)",
+    "opt_paragraphs": "Paragraphs (faster)",
+    "label_no_semantic": "Skip semantic analysis (faster, less accurate)",
+    "btn_analyze": "Analyze Document",
+    "btn_uploading": "Uploading\u2026",
+    "btn_analyzing": "Analyzing\u2026",
+    "label_language": "Language",
+    "step_starting": "Starting\u2026",
+    "step_parse": "Parsing document",
+    "step_pre": "Preprocessing text",
+    "step_chunk": "Chunking text",
+    "step_retrieve": "Retrieving candidate sources",
+    "step_sim": "Computing similarity scores",
+    "step_cite": "Applying citation awareness",
+    "step_report": "Generating report",
+    "err_no_file": "Please upload a PDF or DOCX file.",
+    "err_upload_failed": "Upload failed.",
+    "err_generic": "An error occurred.",
+    "err_connection": "Lost connection to server."
+  },
+  "zh-TW": {
+    "subtitle": "\u5b78\u8853\u5261\u7ad9\u98a8\u9669\u5075\u6e2c\u2014\u4e0a\u50b3\u8ad6\u6587\u5373\u53ef\u958b\u59cb\u5206\u6790\u3002",
+    "label_upload": "\u4e0a\u50b3\u6587\u4ef6\uff08PDF \u6216 DOCX\uff09",
+    "label_format": "\u5831\u544a\u683c\u5f0f",
+    "opt_html": "HTML\uff08\u5728\u700f\u89bd\u5668\u4e2d\u6aa2\u8996\uff09",
+    "opt_text": "\u7d14\u6587\u5b57\uff08\u4e0b\u8f09\uff09",
+    "label_chunk": "\u5206\u584a\u7b56\u7565",
+    "opt_sentences": "\u53e5\u5b50\uff08\u9810\u8a2d\uff0c\u66f4\u7d30\u81f4\uff09",
+    "opt_paragraphs": "\u6bb5\u843d\uff08\u8f03\u5feb\uff09",
+    "label_no_semantic": "\u8df3\u904e\u8a9e\u610f\u5206\u6790\uff08\u8f03\u5feb\uff0c\u7cbe\u78ba\u5ea6\u8f03\u4f4e\uff09",
+    "btn_analyze": "\u5206\u6790\u6587\u4ef6",
+    "btn_uploading": "\u4e0a\u50b3\u4e2d\u2026",
+    "btn_analyzing": "\u5206\u6790\u4e2d\u2026",
+    "label_language": "\u8a9e\u8a00",
+    "step_starting": "\u555f\u52d5\u4e2d\u2026",
+    "step_parse": "\u6b63\u5728\u89e3\u6790\u6587\u4ef6",
+    "step_pre": "\u6b63\u5728\u524d\u8655\u7406\u6587\u5b57",
+    "step_chunk": "\u6b63\u5728\u5206\u5272\u6587\u5b57",
+    "step_retrieve": "\u6b63\u5728\u6aa2\u7d22\u5019\u9078\u4f86\u6e90",
+    "step_sim": "\u6b63\u5728\u8a08\u7b97\u76f8\u4f3c\u5ea6\u5206\u6578",
+    "step_cite": "\u6b63\u5728\u5957\u7528\u5f15\u7528\u611f\u77e5",
+    "step_report": "\u6b63\u5728\u751f\u6210\u5831\u544a",
+    "err_no_file": "\u8acb\u4e0a\u50b3 PDF \u6216 DOCX \u6587\u4ef6\u3002",
+    "err_upload_failed": "\u4e0a\u50b3\u5931\u6557\u3002",
+    "err_generic": "\u767c\u751f\u932f\u8aa4\u3002",
+    "err_connection": "\u8207\u4f3a\u670d\u5668\u7684\u9023\u7dda\u4e2d\u65b7\u3002"
+  },
+  "ja": {
+    "subtitle": "\u5b66\u8853\u7684\u5264\u7a83\u30ea\u30b9\u30af\u691c\u51fa\u2014\u8ad6\u6587\u3092\u30a2\u30c3\u30d7\u30ed\u30fc\u30c9\u3057\u3066\u5206\u6790\u3092\u958b\u59cb\u3057\u3066\u304f\u3060\u3055\u3044\u3002",
+    "label_upload": "\u6587\u66f8\u3092\u30a2\u30c3\u30d7\u30ed\u30fc\u30c9\uff08PDF \u307e\u305f\u306f DOCX\uff09",
+    "label_format": "\u30ec\u30dd\u30fc\u30c8\u5f62\u5f0f",
+    "opt_html": "HTML\uff08\u30d6\u30e9\u30a6\u30b6\u3067\u8868\u793a\uff09",
+    "opt_text": "\u30d7\u30ec\u30fc\u30f3\u30c6\u30ad\u30b9\u30c8\uff08\u30c0\u30a6\u30f3\u30ed\u30fc\u30c9\uff09",
+    "label_chunk": "\u30c1\u30e3\u30f3\u30af\u6226\u7565",
+    "opt_sentences": "\u6587\uff08\u30c7\u30d5\u30a9\u30eb\u30c8\u3001\u3088\u308a\u8a73\u7d30\uff09",
+    "opt_paragraphs": "\u6bb5\u843d\uff08\u9ad8\u901f\uff09",
+    "label_no_semantic": "\u610f\u5473\u89e3\u6790\u3092\u30b9\u30ad\u30c3\u30d7\uff08\u9ad8\u901f\u3060\u304c\u7cbe\u5ea6\u4f4e\u4e0b\uff09",
+    "btn_analyze": "\u6587\u66f8\u3092\u5206\u6790",
+    "btn_uploading": "\u30a2\u30c3\u30d7\u30ed\u30fc\u30c9\u4e2d\u2026",
+    "btn_analyzing": "\u5206\u6790\u4e2d\u2026",
+    "label_language": "\u8a00\u8a9e",
+    "step_starting": "\u958b\u59cb\u4e2d\u2026",
+    "step_parse": "\u6587\u66f8\u3092\u89e3\u6790\u4e2d",
+    "step_pre": "\u30c6\u30ad\u30b9\u30c8\u3092\u524d\u51e6\u7406\u4e2d",
+    "step_chunk": "\u30c6\u30ad\u30b9\u30c8\u3092\u5206\u5272\u4e2d",
+    "step_retrieve": "\u5019\u88dc\u30bd\u30fc\u30b9\u3092\u691c\u7d22\u4e2d",
+    "step_sim": "\u985e\u4f3c\u5ea6\u30b9\u30b3\u30a2\u3092\u8a08\u7b97\u4e2d",
+    "step_cite": "\u5f15\u7528\u8a8d\u8b58\u3092\u9069\u7528\u4e2d",
+    "step_report": "\u30ec\u30dd\u30fc\u30c8\u3092\u751f\u6210\u4e2d",
+    "err_no_file": "PDF\u307e\u305f\u306fDOCX\u30d5\u30a1\u30a4\u30eb\u3092\u30a2\u30c3\u30d7\u30ed\u30fc\u30c9\u3057\u3066\u304f\u3060\u3055\u3044\u3002",
+    "err_upload_failed": "\u30a2\u30c3\u30d7\u30ed\u30fc\u30c9\u306b\u5931\u6557\u3057\u307e\u3057\u305f\u3002",
+    "err_generic": "\u30a8\u30e9\u30fc\u304c\u767a\u751f\u3057\u307e\u3057\u305f\u3002",
+    "err_connection": "\u30b5\u30fc\u30d0\u30fc\u3068\u306e\u63a5\u7d9a\u304c\u5207\u65ad\u3055\u308c\u307e\u3057\u305f\u3002"
+  }
+};
+
+let currentLang = localStorage.getItem("ac-lang") || "en";
+
+function applyLang(lang) {
+  currentLang = lang;
+  document.documentElement.lang = lang;
+  document.getElementById("lang-hidden").value = lang;
+  localStorage.setItem("ac-lang", lang);
+
+  const dict = T[lang] || T["en"];
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    const key = el.getAttribute("data-i18n");
+    if (dict[key] !== undefined) {
+      el.textContent = dict[key];
+    }
+  });
+}
+
+// Restore saved language on load
+document.getElementById("lang-select").value = currentLang;
+applyLang(currentLang);
+
+document.getElementById("lang-select").addEventListener("change", (e) => {
+  applyLang(e.target.value);
+});
+
 const STEP_MAP = [
   { id: "s-parse",    from: 5  },
   { id: "s-pre",      from: 15 },
@@ -116,9 +240,10 @@ document.getElementById("upload-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const btn = document.getElementById("submit-btn");
   const errBox = document.getElementById("error-box");
+  const dict = T[currentLang] || T["en"];
   errBox.style.display = "none";
   btn.disabled = true;
-  btn.textContent = "Uploading…";
+  btn.textContent = dict["btn_uploading"];
 
   const formData = new FormData(e.target);
   let jobId;
@@ -127,12 +252,12 @@ document.getElementById("upload-form").addEventListener("submit", async (e) => {
     const res = await fetch("/analyze", { method: "POST", body: formData });
     const data = await res.json();
     if (!res.ok || data.error) {
-      throw new Error(data.error || "Upload failed.");
+      throw new Error(data.error || dict["err_upload_failed"]);
     }
     jobId = data.job_id;
   } catch (err) {
     btn.disabled = false;
-    btn.textContent = "Analyze Document";
+    btn.textContent = dict["btn_analyze"];
     errBox.textContent = err.message;
     errBox.style.display = "block";
     return;
@@ -140,7 +265,7 @@ document.getElementById("upload-form").addEventListener("submit", async (e) => {
 
   // Show progress UI
   document.getElementById("progress-section").style.display = "block";
-  btn.textContent = "Analyzing…";
+  btn.textContent = dict["btn_analyzing"];
 
   const es = new EventSource(`/progress/${jobId}`);
   es.onmessage = (event) => {
@@ -158,17 +283,18 @@ document.getElementById("upload-form").addEventListener("submit", async (e) => {
     } else if (job.status === "error") {
       es.close();
       btn.disabled = false;
-      btn.textContent = "Analyze Document";
-      errBox.textContent = job.step || "An error occurred.";
+      btn.textContent = dict["btn_analyze"];
+      errBox.textContent = job.step || dict["err_generic"];
       errBox.style.display = "block";
     }
   };
 
   es.onerror = () => {
     es.close();
+    const d = T[currentLang] || T["en"];
     btn.disabled = false;
-    btn.textContent = "Analyze Document";
-    errBox.textContent = "Lost connection to server.";
+    btn.textContent = d["btn_analyze"];
+    errBox.textContent = d["err_connection"];
     errBox.style.display = "block";
   };
 });

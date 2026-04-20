@@ -6,6 +6,8 @@ import threading
 from pathlib import Path
 from flask import Flask, request, render_template, send_file, Response, jsonify
 
+from i18n.translations import t, SUPPORTED_LANGS
+
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
@@ -22,20 +24,20 @@ def _allowed(filename: str) -> bool:
     return Path(filename).suffix.lower() in ALLOWED_EXTENSIONS
 
 
-def run_analysis(job_id, upload_path, filename, fmt, no_semantic, chunk_strategy):
+def run_analysis(job_id, upload_path, filename, fmt, no_semantic, chunk_strategy, lang):
     def update(progress: int, step: str):
         jobs[job_id].update({"progress": progress, "step": step})
 
     try:
-        update(5, "Parsing document…")
+        update(5, t(lang, "step_parse"))
         from ingestion.document_parser import parse
         doc = parse(str(upload_path))
 
-        update(15, "Preprocessing text…")
+        update(15, t(lang, "step_pre"))
         from preprocessing.text_cleaner import clean
         cleaned = clean(doc.body)
 
-        update(22, "Chunking text…")
+        update(22, t(lang, "step_chunk"))
         from chunking.chunker import chunk
         chunks = chunk(cleaned.cleaned, strategy=chunk_strategy)
 
@@ -44,23 +46,23 @@ def run_analysis(job_id, upload_path, filename, fmt, no_semantic, chunk_strategy
         n = len(chunks)
         for i, c in enumerate(chunks):
             pct = 25 + int(50 * i / max(n, 1))
-            update(pct, f"Retrieving sources… ({i + 1}/{n})")
+            update(pct, t(lang, "step_retrieve_n", i=i + 1, n=n))
             sources = retrieve_sources(c.text, top_n=5)
             sources_per_chunk.append(sources)
 
-        update(78, "Computing similarity scores…")
+        update(78, t(lang, "step_sim"))
         from similarity.engine import compute_similarity
         sim_results = compute_similarity(chunks, sources_per_chunk, semantic=not no_semantic)
 
-        update(88, "Applying citation awareness…")
+        update(88, t(lang, "step_cite"))
         from citation.citation_checker import adjust_for_citations
         adj = adjust_for_citations(sim_results, cleaned.cleaned, chunks)
 
-        update(95, "Generating report…")
+        update(95, t(lang, "step_report"))
         from scoring.scorer import compute_metrics
         from report.generator import build_report, render_html, render_text
         metrics = compute_metrics(sim_results, adj)
-        report = build_report(doc.title or Path(filename).stem, metrics, sim_results, adj)
+        report = build_report(doc.title or Path(filename).stem, metrics, sim_results, adj, lang=lang)
 
         if fmt == "html":
             content = render_html(report)
@@ -75,7 +77,7 @@ def run_analysis(job_id, upload_path, filename, fmt, no_semantic, chunk_strategy
         jobs[job_id].update({
             "status": "done",
             "progress": 100,
-            "step": "Analysis complete!",
+            "step": t(lang, "step_complete"),
             "fmt": fmt,
             "report_path": str(report_path),
             "html_content": content if fmt == "html" else None,
@@ -95,11 +97,15 @@ def index():
 
 @app.route("/analyze", methods=["POST"])
 def analyze():
+    lang = request.form.get("lang", "en")
+    if lang not in SUPPORTED_LANGS:
+        lang = "en"
+
     file = request.files.get("document")
     if not file or not file.filename:
-        return jsonify({"error": "Please upload a PDF or DOCX file."}), 400
+        return jsonify({"error": t(lang, "err_no_file")}), 400
     if not _allowed(file.filename):
-        return jsonify({"error": "Only PDF and DOCX files are supported."}), 400
+        return jsonify({"error": t(lang, "err_bad_format")}), 400
 
     job_id = str(uuid.uuid4())[:8]
     suffix = Path(file.filename).suffix.lower()
@@ -110,10 +116,10 @@ def analyze():
     no_semantic = "no_semantic" in request.form
     chunk_strategy = request.form.get("chunk_strategy", "sentences")
 
-    jobs[job_id] = {"status": "running", "progress": 0, "step": "Starting…"}
+    jobs[job_id] = {"status": "running", "progress": 0, "step": t(lang, "step_starting")}
     threading.Thread(
         target=run_analysis,
-        args=(job_id, upload_path, file.filename, fmt, no_semantic, chunk_strategy),
+        args=(job_id, upload_path, file.filename, fmt, no_semantic, chunk_strategy, lang),
         daemon=True,
     ).start()
 

@@ -61,8 +61,8 @@ def test_render_text_contains_key_sections():
     text = render_text(report)
     assert "AuthentiCheck" in text
     assert "My Paper" in text
-    assert "MATCHED SOURCES" in text
-    assert "FINAL VERDICT" in text
+    assert "Matched Sources" in text
+    assert "Final Verdict" in text
     assert "30.0%" in text
 
 
@@ -80,7 +80,7 @@ def test_render_html_is_valid_html():
 def test_high_risk_verdict_language():
     sims = [_sim(0, 0.9)]
     adjs = [_adj(0, False)]
-    report = build_report("Paper", _metrics("High", 65.0), sims, adjs)
+    report = build_report("Paper", _metrics("High", 65.0), sims, adjs, lang="en")
     assert "plagiarism risk" in report.final_verdict.lower()
     assert "plagiarized" not in report.final_verdict.lower()
 
