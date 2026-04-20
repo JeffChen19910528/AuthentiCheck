@@ -97,3 +97,101 @@ def test_cited_match_shows_cited_tag():
     adjs = [_adj(0, cited=True)]
     report = build_report("Paper", _metrics(), sims, adjs)
     assert report.matches[0].has_citation is True
+
+
+# --- New: location, action, full text ---
+
+def test_match_has_chunk_index():
+    sims = [_sim(3)]
+    adjs = [_adj(3)]
+    report = build_report("Paper", _metrics(), sims, adjs)
+    assert report.matches[0].chunk_index == 3
+
+
+def test_uncited_match_action_is_add_citation():
+    sims = [_sim(0, score=0.6, semantic=0.3)]
+    adjs = [_adj(0, cited=False)]
+    report = build_report("Paper", _metrics(), sims, adjs)
+    assert report.matches[0].action == "add_citation"
+
+
+def test_high_semantic_uncited_action_is_rewrite():
+    sims = [_sim(0, score=0.6, semantic=0.8)]
+    adjs = [_adj(0, cited=False)]
+    report = build_report("Paper", _metrics(), sims, adjs)
+    assert report.matches[0].action == "rewrite"
+
+
+def test_cited_match_action_is_ok():
+    sims = [_sim(0, score=0.6, semantic=0.4)]
+    adjs = [_adj(0, cited=True)]
+    report = build_report("Paper", _metrics(), sims, adjs)
+    assert report.matches[0].action == "ok"
+
+
+def test_match_chunk_text_is_full_not_truncated():
+    long_text = "Word " * 200
+    sim = SimilarityResult(
+        chunk_text=long_text,
+        source_title="Source",
+        source_url="https://example.com",
+        source_abstract="abstract",
+        lexical_score=0.6,
+        ngram_score=0.6,
+        semantic_score=0.4,
+        combined_score=0.6,
+        chunk_index=0,
+    )
+    adjs = [_adj(0)]
+    report = build_report("Paper", _metrics(), [sim], adjs)
+    assert len(report.matches[0].chunk_text) == len(long_text)
+
+
+def test_render_text_shows_location_and_action():
+    sims = [_sim(2)]
+    adjs = [_adj(2, cited=False)]
+    report = build_report("Paper", _metrics(), sims, adjs)
+    text = render_text(report)
+    assert "Paragraph #3" in text
+    assert "Action Required" in text
+
+
+def test_render_html_shows_action_css_class():
+    sims = [_sim(0, score=0.6, semantic=0.3)]
+    adjs = [_adj(0, cited=False)]
+    report = build_report("Paper", _metrics(), sims, adjs)
+    html = render_html(report)
+    assert "action-cite" in html
+
+
+def test_render_html_shows_rewrite_css_class():
+    sims = [_sim(0, score=0.6, semantic=0.8)]
+    adjs = [_adj(0, cited=False)]
+    report = build_report("Paper", _metrics(), sims, adjs)
+    html = render_html(report)
+    assert "action-rewrite" in html
+
+
+def test_render_html_shows_ok_css_class():
+    sims = [_sim(0, score=0.6, semantic=0.4)]
+    adjs = [_adj(0, cited=True)]
+    report = build_report("Paper", _metrics(), sims, adjs)
+    html = render_html(report)
+    assert "action-ok" in html
+
+
+def test_render_html_passage_contains_full_chunk():
+    sims = [_sim(0)]
+    adjs = [_adj(0)]
+    report = build_report("Paper", _metrics(), sims, adjs)
+    html = render_html(report)
+    assert "chunk number 0" in html
+
+
+def test_render_text_zh_tw_shows_location():
+    sims = [_sim(1)]
+    adjs = [_adj(1, cited=False)]
+    report = build_report("Paper", _metrics(), sims, adjs, lang="zh-TW")
+    text = render_text(report, lang="zh-TW")
+    assert "第 2 段" in text
+    assert "建議動作" in text

@@ -107,7 +107,7 @@ def test_full_pipeline_produces_report(mock_sem, mock_retrieve):
     text_out = render_text(report)
     assert "AuthentiCheck" in text_out
     assert FAKE_DOC.title in text_out
-    assert "FINAL VERDICT" in text_out
+    assert "Final Verdict" in text_out
 
     # 9. render html
     html_out = render_html(report)

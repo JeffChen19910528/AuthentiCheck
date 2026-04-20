@@ -158,31 +158,20 @@ Generate a Turnitin-style report in the user's selected language:
 
 * e.g. 27%
 
-### 2. Matched Sources
+### 2. Matched Sources — Per-Paragraph Detail
 
-* Source title
-* URL
-* Match percentage
+Each match card shows:
 
-### 3. Highlighted Text
+* **Location**: which paragraph in the uploaded paper (Paragraph #N)
+* **Source**: title, URL, match percentage, citation status
+* **Problematic Passage**: the full text of the suspicious paragraph from the paper
+* **Analysis**: interpretation (cited / common phrasing / overlap / rewriting)
+* **Action Required** (colour-coded):
+  * 📌 Red — Add citation (high lexical match, no citation)
+  * ✏️ Orange — Rewrite recommended (high semantic similarity, no citation)
+  * ✅ Green — Properly cited, no action needed
 
-* Show:
-
-  * Original text
-  * Matched text
-  * Highlight overlaps
-
-### 4. Analysis
-
-Explain:
-
-* Is this:
-
-  * Proper citation?
-  * Common method reuse?
-  * Suspicious rewriting?
-
-### 5. Final Verdict
+### 3. Final Verdict
 
 DO NOT say "plagiarized"
 Instead say:
@@ -191,6 +180,14 @@ Instead say:
 * "Moderate similarity with acceptable citation usage"
 
 All labels, analysis strings, and verdict text must use the language selected by the user.
+
+### Action Logic
+
+```
+has_citation=True  → action = "ok"
+semantic > 0.65 and no citation → action = "rewrite"
+otherwise no citation → action = "add_citation"
+```
 
 ---
 

@@ -49,7 +49,7 @@ The system is composed of these sequential pipeline modules (see `SKILL.md` for 
 
 8. **Risk Classifier** (`scoring/`) — Maps metrics to: Low / Medium / High risk with explanation.
 
-9. **Report Generator** (`report/`) — Outputs a structured report with: overall similarity, matched sources (title + URL + match %), highlighted overlapping text, per-match analysis (citation vs. paraphrase vs. common phrasing), and a final verdict using hedged language ("High likelihood of plagiarism risk", never "plagiarized").
+9. **Report Generator** (`report/`) — Outputs a structured report with: overall similarity; per-paragraph match cards showing the **exact location (Paragraph #N)**, the **full problematic passage** from the paper, the similar source (title + URL + match %), citation status, per-match analysis (citation vs. paraphrase vs. common phrasing), a colour-coded **action recommendation** (📌 add citation / ✏️ rewrite / ✅ ok), and a final verdict using hedged language ("High likelihood of plagiarism risk", never "plagiarized").
 
 ### UI Layer
 
